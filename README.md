@@ -1,11 +1,25 @@
 # mod\_crowdsec
-Module that allows filtering against the crowdsec API.
+Module for the [Apache HTTP Web Server](https://httpd.apache.org) that allows filtering of unwanted web traffic.
 
 Use with the [Crowdsec API](https://www.crowdsec.net) service to filter unwanted traffic from a website or application fronted by Apache httpd.
 
 ## basic configuration
 
 ```
+# Load required modules
+<IfModule !crowdsec_module>
+  LoadModule crowdsec_module modules/mod_crowdsec.so
+</IfModule>
+<IfModule !proxy_module>
+  LoadModule proxy_module modules/mod_proxy.so
+</IfModule>
+<IfModule !proxy_http_module>
+  LoadModule proxy_http_module modules/mod_proxy_http.so
+</IfModule>
+<IfModule !socache_shmcb_module>
+  LoadModule socache_shmcb_module modules/mod_socache_shmcb.so
+</IfModule>
+
 # Basic configuration:
 CrowdsecURL http://localhost:8080
 CrowdsecAPIKey [...]
