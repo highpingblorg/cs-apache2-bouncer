@@ -55,6 +55,20 @@
  *   Crowdsec on
  * </Location>
  *
+ * <Location /one/>
+ *   Crowdsec on
+ *   ErrorDocument 429 "IP Address Blocked"
+ * </Location>
+ *
+ * <Location /two/>
+ *   Crowdsec on
+ *   ErrorDocument 429 https://somewhere.example.com/blocked.html
+ * </Location>
+ *
+ * <Location /three/>
+ *   Crowdsec on
+ *   ErrorDocument 429 /you-are-blocked.html
+ * </Location>
  */
 
 #include "httpd.h"
@@ -444,7 +458,7 @@ static int crowdsec_query(request_rec * r)
                       "mod_crowdsec: ip address '%s' lookup returned %s, "
                       "request rejected: %s",
                       r->useragent_ip, response, r->uri);
-        return HTTP_FORBIDDEN;
+        return HTTP_TOO_MANY_REQUESTS;
     }
 
     return OK;

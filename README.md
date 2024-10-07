@@ -30,6 +30,18 @@ CrowdsecCacheTimeout 60
 <Location />
   Crowdsec on
 </Location>
+
+<Location /one/>
+  ErrorDocument 429 "IP Address Blocked"
+</Location>
+
+<Location /two/>
+  ErrorDocument 429 https://somewhere.example.com/blocked.html
+</Location>
+
+<Location /three/>
+  ErrorDocument 429 /you-are-blocked.html
+</Location>
 ```
 
 ## directives
