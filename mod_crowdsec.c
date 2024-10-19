@@ -756,6 +756,7 @@ static const char *set_crowdsec_cache_timeout(cmd_parms * cmd, void *dconf,
     int secs = atoi(timeout);
 
     sconf->cache_timeout = apr_time_from_sec(secs);
+    sconf->cache_timeout_set = 1;
 
     return NULL;
 }
