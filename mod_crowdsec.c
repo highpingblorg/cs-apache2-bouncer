@@ -213,14 +213,14 @@ static const char *crowdsec_from_cache(request_rec * r)
     if (APR_STATUS_IS_NOTFOUND(status)) {
         /* not found - just return */
         ap_log_rerror(APLOG_MARK, APLOG_DEBUG, 0, r,
-                      "crowdsec: no cached response found for %s",
+                      "crowdsec: no response found in cache for %s",
                       r->useragent_ip);
         return NULL;
     }
     else if (status == APR_SUCCESS) {
         /* OK, we got a value */
         ap_log_rerror(APLOG_MARK, APLOG_DEBUG, 0, r,
-                      "crowdsec: cached response found for %s",
+                      "crowdsec: response found in cache for %s",
                       r->useragent_ip);
     }
     else {
@@ -259,13 +259,13 @@ static void crowdsec_to_cache(request_rec * r, const char *response)
     if (APR_STATUS_IS_EBUSY(status)) {
         /* don't wait around; just abandon it */
         ap_log_rerror(APLOG_MARK, APLOG_DEBUG, status, r,
-                      "crowdsec result for %s not cached (mutex busy)",
+                      "crowdsec: result for %s not written to cache (mutex busy)",
                       r->useragent_ip);
         return;
     }
     else if (status != APR_SUCCESS) {
         ap_log_rerror(APLOG_MARK, APLOG_ERR, status, r,
-                      "crowdsec result for %s not cached: failed to lock cache mutex",
+                      "crowdsec: result for %s not written to cache (failed to lock cache mutex)",
                       r->useragent_ip);
         return;
     }
@@ -283,11 +283,11 @@ static void crowdsec_to_cache(request_rec * r, const char *response)
 
     if (status == APR_SUCCESS) {
         ap_log_rerror(APLOG_MARK, APLOG_DEBUG, 0, r,
-                      "Cached crowdsec response for %s", r->useragent_ip);
+                      "crowdsec: result for %s written to cache", r->useragent_ip);
     }
     else {
         ap_log_rerror(APLOG_MARK, APLOG_ERR, status, r,
-                      "Failed to cache crowdsec response for %s",
+                      "crowdsec: result for %s not written to cache",
                       r->useragent_ip);
     }
 
@@ -296,7 +296,7 @@ static void crowdsec_to_cache(request_rec * r, const char *response)
 
     if (status != APR_SUCCESS) {
         ap_log_rerror(APLOG_MARK, APLOG_ERR, status, r,
-                      "Failed to release mutex!");
+                      "crowdsec: failed to release mutex");
     }
 
 }
@@ -333,7 +333,7 @@ static int crowdsec_proxy(request_rec * r, const char **response)
                                      NULL);
 
     ap_log_rerror(APLOG_MARK, APLOG_DEBUG, APR_SUCCESS, r,
-                  "mod_crowdsec: Looking up IP '%s' at url: %s",
+                  "crowdsec: looking up IP '%s' at url: %s",
                   r->useragent_ip, target);
 
     /* create a proxy request */
@@ -341,7 +341,7 @@ static int crowdsec_proxy(request_rec * r, const char **response)
 
     if (rr->status != HTTP_OK) {
         ap_log_rerror(APLOG_MARK, APLOG_ERR, APR_SUCCESS, r,
-                      "mod_crowdsec: service '%s' returned %d, request rejected: %s",
+                      "crowdsec: service '%s' returned %d, request rejected: %s",
                       target, rr->status, r->uri);
         return rr->status;
     }
@@ -382,8 +382,8 @@ static int crowdsec_proxy(request_rec * r, const char **response)
 
     if (HTTP_NOT_FOUND == status) {
         ap_log_rerror(APLOG_MARK, APLOG_ERR, APR_SUCCESS, r,
-                      "mod_crowdsec: We received a 404 Not Found when speaking "
-                      "to the crowdsec service '%s'. You might be pointing at "
+                      "crowdsec: we received a 404 Not Found when speaking "
+                      "to the crowdsec service '%s', you might be pointing at "
                       "something that isn't a crowdsec service, or the "
                       "mod_proxy_http module has not been installed, request "
                       "rejected: %s", target, r->uri);
@@ -392,7 +392,7 @@ static int crowdsec_proxy(request_rec * r, const char **response)
 
     else if ((status)) {
         ap_log_rerror(APLOG_MARK, APLOG_ERR, APR_SUCCESS, r,
-                      "mod_crowdsec: crowdsec service '%s' returned status %d, "
+                      "crowdsec: crowdsec service '%s' returned status %d, "
                       "request rejected: %s", target, status, r->uri);
 
         apr_table_setn(r->notes, "error-notes",
@@ -407,7 +407,7 @@ static int crowdsec_proxy(request_rec * r, const char **response)
 
     if (!rrconf->response) {
         ap_log_rerror(APLOG_MARK, APLOG_ERR, APR_SUCCESS, r,
-                      "mod_crowdsec: response from crowdsec service '%s' was not recorded, "
+                      "crowdsec: response from crowdsec service '%s' was not recorded, "
                       "request rejected: %s", target, r->uri);
         return HTTP_INTERNAL_SERVER_ERROR;
     }
@@ -449,13 +449,13 @@ static int crowdsec_query(request_rec * r)
 
     if (!strcmp("null", response)) {
         ap_log_rerror(APLOG_MARK, APLOG_DEBUG, APR_SUCCESS, r,
-                      "mod_crowdsec: ip address '%s' not blocked, "
+                      "crowdsec: ip address '%s' not blocked, "
                       "request accepted: %s", r->useragent_ip, r->uri);
     }
 
     else {
         ap_log_rerror(APLOG_MARK, APLOG_DEBUG, APR_SUCCESS, r,
-                      "mod_crowdsec: ip address '%s' lookup returned %s, "
+                      "crowdsec: ip address '%s' lookup returned %s, "
                       "request rejected: %s",
                       r->useragent_ip, response, r->uri);
         return HTTP_TOO_MANY_REQUESTS;
