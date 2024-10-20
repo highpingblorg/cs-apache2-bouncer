@@ -5,10 +5,11 @@ Use with the [Crowdsec API](https://www.crowdsec.net) service to filter unwanted
 
 When blocked, requests will return 429 Too any Requests, as defined in
 [RFC6585](https://datatracker.ietf.org/doc/html/rfc6585#section-4). This
-response can be further customised into a fixed response or an URL to
+response can be further customised into a fixed response or an URL or path to
 redirect to by using the
 [ErrorDocument](https://httpd.apache.org/docs/2.4/mod/core.html#errordocument)
-directive in Apache httpd.
+directive in Apache httpd. Full details for customising the error handling
+can be found here: [Custom Error Responses](https://httpd.apache.org/docs/2.4/custom-error.html)
 
 ## basic configuration
 
