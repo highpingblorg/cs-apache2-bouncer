@@ -3,6 +3,13 @@ Module for the [Apache HTTP Web Server](https://httpd.apache.org) that allows fi
 
 Use with the [Crowdsec API](https://www.crowdsec.net) service to filter unwanted traffic from a website or application fronted by Apache httpd.
 
+When blocked, requests will return 429 Too any Requests, as defined in
+[RFC6585](https://datatracker.ietf.org/doc/html/rfc6585#section-4). This
+response can be further customised into a fixed response or an URL to
+redirect to by using the
+[ErrorDocument](https://httpd.apache.org/docs/2.4/mod/core.html#errordocument)
+directive in Apache httpd.
+
 ## basic configuration
 
 ```

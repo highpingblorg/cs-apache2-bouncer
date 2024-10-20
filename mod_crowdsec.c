@@ -28,6 +28,10 @@
  * verified against the blocklist supplied by Crowdsec at
  * https://www.crowdsec.net.
  *
+ * When blocked, this module returns 429 Too Many Requests
+ * as described in
+ * https://datatracker.ietf.org/doc/html/rfc6585#section-4
+ *
  *  Author: Graham Leggett
  *
  * Basic configuration:
