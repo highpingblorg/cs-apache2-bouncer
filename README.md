@@ -35,6 +35,12 @@ CrowdsecAPIKey [...]
 CrowdsecCache shmcb
 CrowdsecCacheTimeout 60
 
+CrowdsecFallback block
+
+<Proxy "http://localhost:8080">
+  ProxySet connectiontimeout=1 timeout=5
+</Proxy>
+
 <Location />
   Crowdsec on
 </Location>
@@ -61,6 +67,7 @@ CrowdsecCacheTimeout 60
 | CrowdsecAPIKey | Set to the API key of the Crowdsec API. Add an API key using 'cscli bouncers add'. |
 | CrowdsecCache    | Enable the crowdsec cache. Defaults to 'none'. Options detailed here: https://httpd.apache.org/docs/2.4/socache.html. |
 | CrowdsecCacheTimeout    | Set the crowdsec cache timeout. Defaults to 60 seconds. |
+| CrowdsecFallback  | How to respond if the Crowdsec API is not available. 'fail' returns a 500 Internal Server Error. 'block' returns a 429 Too Many Requests. 'allow' will allow the request through. Default to 'fail'. |
 
 ## caching
 
@@ -68,3 +75,15 @@ The results of a ban may be optionally cached using the [Apache shared object ca
 
 The CrowdsecCacheTimeout directive controls the amount of time in seconds that the
 response will be cached for.
+
+## fallback
+
+Should the Crowdsec API be unavailable, you can control the behaviour of mod_crowdsec
+with the CrowdsecFallback directive. By default, failure to determine the status of
+an IP address will cause mod_crowdsec to return 500 Internal Server Error. To override
+this and have mmod_crodsec block all requests, set to 'block'. If you wish to fail open,
+set this to 'allow'.
+
+The timeouts for connection to and communication with the crowdsec API are controlled by
+mod_proxy using the [ProxySet](https://httpd.apache.org/docs/2.4/mod/mod_proxy.html#proxyset) directive. Set the connectiontimeout and timeout options to
+control how long to wait for crowdsec to respond.

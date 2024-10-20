@@ -49,6 +49,10 @@
  *   LoadModule socache_shmcb_module modules/mod_socache_shmcb.so
  * </IfModule>
  *
+ * <Proxy "http://localhost:8080">
+ *   ProxySet connectiontimeout=1 timeout=5
+ * </Proxy>
+ *
  * CrowdsecURL http://localhost:8080
  * CrowdsecAPIKey [...]
  *
