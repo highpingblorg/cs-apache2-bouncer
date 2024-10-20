@@ -111,14 +111,24 @@ typedef struct
     unsigned int cache_timeout_set:1;
 } crowdsec_server_rec;
 
+typedef enum {
+    CROWDSEC_FAIL,
+    CROWDSEC_BLOCK,
+    CROWDSEC_ALLOW
+} crowdsec_fallback;
+
 typedef struct
 {
     /* the response from the crowdsec service is stored here */
     const char *response;
-    /* crowdsec has been enabled */
-    unsigned int enable:1;
     /* enable was explicitly set */
+    unsigned int enable:1;
+    /* crowdsec fallback behaviour */
+    crowdsec_fallback fallback:2;
+    /* crowdsec has been enabled */
     unsigned int enable_set:1;
+    /* enable was explicitly set */
+    unsigned int fallback_set:1;
 } crowdsec_config_rec;
 
 #define CROWDSEC_CACHE_TIMEOUT_DEFAULT 60
@@ -395,18 +405,51 @@ static int crowdsec_proxy(request_rec * r, const char **response)
     }
 
     else if ((status)) {
-        ap_log_rerror(APLOG_MARK, APLOG_ERR, APR_SUCCESS, r,
-                      "crowdsec: crowdsec service '%s' returned status %d, "
-                      "request rejected: %s", target, status, r->uri);
 
-        apr_table_setn(r->notes, "error-notes",
-                       "Could not verify the request against the threat intelligence "
-                       "service, the request has been rejected.");
+        crowdsec_config_rec *conf = (crowdsec_config_rec *)
+            ap_get_module_config(r->per_dir_config,
+                                 &crowdsec_module);
 
-        /* Allow "error-notes" string to be printed by ap_send_error_response() */
-        apr_table_setn(r->notes, "verbose-error-to", "*");
+        switch (conf->fallback) {
+        case CROWDSEC_FAIL: {
 
-        return HTTP_INTERNAL_SERVER_ERROR;
+            ap_log_rerror(APLOG_MARK, APLOG_ERR, APR_SUCCESS, r,
+                          "crowdsec: crowdsec service '%s' returned status %d, "
+                          "request failed: %s", target, status, r->uri);
+
+            apr_table_setn(r->notes, "error-notes",
+                           "Could not verify the request against the threat intelligence "
+                           "service, the request has been rejected.");
+
+            /* Allow "error-notes" string to be printed by ap_send_error_response() */
+            apr_table_setn(r->notes, "verbose-error-to", "*");
+
+            return HTTP_INTERNAL_SERVER_ERROR;
+        }
+        case CROWDSEC_BLOCK: {
+
+            ap_log_rerror(APLOG_MARK, APLOG_ERR, APR_SUCCESS, r,
+                          "crowdsec: crowdsec service '%s' returned status %d, "
+                          "request blocked: %s", target, status, r->uri);
+
+            *response = apr_psprintf(r->pool,
+                                     "[{\"error\":\"'%s' returned %d\"}]",
+                                     target, status);
+
+            return OK;
+        }
+        case CROWDSEC_ALLOW: {
+
+            ap_log_rerror(APLOG_MARK, APLOG_ERR, APR_SUCCESS, r,
+                          "crowdsec: crowdsec service '%s' returned status %d, "
+                          "request accepted anyway: %s", target, status, r->uri);
+
+            *response = "null";
+
+            return OK;
+        }
+        }
+
     }
 
     if (!rrconf->response) {
@@ -418,7 +461,7 @@ static int crowdsec_proxy(request_rec * r, const char **response)
 
     *response = rrconf->response;
 
-    return status;
+    return OK;
 }
 
 static int crowdsec_query(request_rec * r)
@@ -554,6 +597,9 @@ static void *merge_crowdsec_dir_config(apr_pool_t * p, void *basev,
     new->enable = (add->enable_set == 0) ? base->enable : add->enable;
     new->enable_set = add->enable_set || base->enable_set;
 
+    new->fallback = (add->fallback_set == 0) ? base->fallback : add->fallback;
+    new->fallback_set = add->fallback_set || base->fallback_set;
+
     return new;
 }
 
@@ -679,6 +725,30 @@ static const char *set_crowdsec(cmd_parms * cmd, void *dconf, int flag)
     return NULL;
 }
 
+static const char *set_crowdsec_fallback(cmd_parms * cmd, void *dconf, const char *fallback)
+{
+    crowdsec_config_rec *conf = dconf;
+
+    if (!strcmp(fallback, "fail")) {
+        conf->fallback = CROWDSEC_FAIL;
+    }
+    else if (!strcmp(fallback, "block")) {
+        conf->fallback = CROWDSEC_BLOCK;
+    }
+    else if (!strcmp(fallback, "allow")) {
+        conf->fallback = CROWDSEC_ALLOW;
+    }
+    else {
+        return apr_psprintf(cmd->pool,
+                            "Unknown CrowdsecFallback '%s'. Valid values "
+                            "are 'fail', 'block' and 'allow'.", fallback);
+    }
+
+    conf->fallback_set = 1;
+
+    return NULL;
+}
+
 static const char *set_crowdsec_url(cmd_parms * cmd, void *dconf,
                                     const char *url)
 {
@@ -769,6 +839,9 @@ static const command_rec crowdsec_cmds[] = {
     AP_INIT_FLAG("Crowdsec",
                  set_crowdsec, NULL, RSRC_CONF | ACCESS_CONF,
                  "Enable crowdsec in the given location. Defaults to 'off'."),
+    AP_INIT_TAKE1("CrowdsecFallback",
+                  set_crowdsec_fallback, NULL, RSRC_CONF | ACCESS_CONF,
+                  "How to respond if the Crowdsec API is not available. 'fail' returns a 500 Internal Server Error. 'block' returns a 429 Too Many Requests. 'allow' will allow the request through. Default to 'fail'."),
     AP_INIT_TAKE1("CrowdsecURL",
                   set_crowdsec_url, NULL, RSRC_CONF,
                   "Set to the URL of the Crowdsec API. For example: http://localhost:8080."),
