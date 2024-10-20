@@ -61,3 +61,9 @@ CrowdsecCacheTimeout 60
 | CrowdsecCache    | Enable the crowdsec cache. Defaults to 'none'. Options detailed here: https://httpd.apache.org/docs/2.4/socache.html. |
 | CrowdsecCacheTimeout    | Set the crowdsec cache timeout. Defaults to 60 seconds. |
 
+## caching
+
+The results of a ban may be optionally cached using the [Apache shared object cache](https://httpd.apache.org/docs/2.4/socache.html).
+
+The CrowdsecCacheTimeout directive controls the amount of time in seconds that the
+response will be cached for.
