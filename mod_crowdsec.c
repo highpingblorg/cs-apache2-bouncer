@@ -32,6 +32,9 @@
  * as described in
  * https://datatracker.ietf.org/doc/html/rfc6585#section-4
  *
+ * Alternatively, the CrowdsecLocation directive can specify
+ * an URL to redirect to on block.
+ *
  *  Author: Graham Leggett
  *
  * Basic configuration:
@@ -77,6 +80,11 @@
  *   Crowdsec on
  *   ErrorDocument 429 /you-are-blocked.html
  * </Location>
+ *
+ * <Location /four/>
+ *   Crowdsec on
+ *   CrowdsecLocation https://somewhere.example.com/blocked.html?ip=%{REMOTE_ADDR}
+ * </Location>
  */
 
 #include "httpd.h"
@@ -84,6 +92,7 @@
 #include "http_log.h"
 #include "http_protocol.h"
 #include "http_request.h"
+#include "ap_expr.h"
 #include "ap_socache.h"
 #include "util_mutex.h"
 
@@ -125,6 +134,8 @@ typedef struct
 {
     /* the response from the crowdsec service is stored here */
     const char *response;
+    /* the location to redirect to on block */
+    ap_expr_info_t *location;
     /* enable was explicitly set */
     unsigned int enable:1;
     /* crowdsec fallback behaviour */
@@ -133,6 +144,8 @@ typedef struct
     unsigned int enable_set:1;
     /* enable was explicitly set */
     unsigned int fallback_set:1;
+    /* location was explicitly set */
+    unsigned int location_set:1;
 } crowdsec_config_rec;
 
 #define CROWDSEC_CACHE_TIMEOUT_DEFAULT 60
@@ -478,6 +491,10 @@ static int crowdsec_query(request_rec * r)
         ap_get_module_config(r->server->module_config,
                              &crowdsec_module);
 
+    crowdsec_config_rec *conf = (crowdsec_config_rec *)
+        ap_get_module_config(r->per_dir_config,
+                             &crowdsec_module);
+
     if (r->main || !sconf || !sconf->url) {
         return DECLINED;
     }
@@ -502,6 +519,32 @@ static int crowdsec_query(request_rec * r)
         ap_log_rerror(APLOG_MARK, APLOG_DEBUG, APR_SUCCESS, r,
                       "crowdsec: ip address '%s' not blocked, "
                       "request accepted: %s", r->useragent_ip, r->uri);
+        return OK;
+    }
+
+    else if (conf->location) {
+
+        const char *location;
+        const char *err;
+
+        err = NULL;
+        location = ap_expr_str_exec(r, conf->location, &err);
+        if (err) {
+            ap_log_rerror(
+                    APLOG_MARK, APLOG_ERR, 0, r,
+                                       "crowdsec: CrowdsecLocation: can't "
+                    "evaluate location expression: %s", err);
+            return HTTP_INTERNAL_SERVER_ERROR;
+        }
+
+        ap_log_rerror(APLOG_MARK, APLOG_DEBUG, APR_SUCCESS, r,
+                      "crowdsec: ip address '%s' lookup returned %s, "
+                      "request redirected to '%s': %s",
+                      r->useragent_ip, response, location, r->uri);
+
+        apr_table_setn(r->headers_out, "Location", location);
+        return HTTP_MOVED_TEMPORARILY;
+
     }
 
     else {
@@ -512,7 +555,6 @@ static int crowdsec_query(request_rec * r)
         return HTTP_TOO_MANY_REQUESTS;
     }
 
-    return OK;
 }
 
 static int crowdsec_check_access(request_rec * r)
@@ -603,6 +645,9 @@ static void *merge_crowdsec_dir_config(apr_pool_t * p, void *basev,
 
     new->fallback = (add->fallback_set == 0) ? base->fallback : add->fallback;
     new->fallback_set = add->fallback_set || base->fallback_set;
+
+    new->location = (add->location_set == 0) ? base->location : add->location;
+    new->location_set = add->location_set || base->location_set;
 
     return new;
 }
@@ -753,6 +798,26 @@ static const char *set_crowdsec_fallback(cmd_parms * cmd, void *dconf, const cha
     return NULL;
 }
 
+static const char *set_crowdsec_location(cmd_parms *cmd, void *dconf,
+                                const char *location)
+{
+    crowdsec_config_rec *conf = dconf;
+
+    const char *expr_err = NULL;
+
+    conf->location = ap_expr_parse_cmd(cmd, location, AP_EXPR_FLAG_STRING_RESULT,
+            &expr_err, NULL);
+    if (expr_err) {
+        return apr_pstrcat(cmd->temp_pool,
+                "crowdsec: cannot parse expression '", location, "' in CrowdsecLocation: ",
+                      expr_err, NULL);
+    }
+
+    conf->location_set = 1;
+
+    return NULL;
+}
+
 static const char *set_crowdsec_url(cmd_parms * cmd, void *dconf,
                                     const char *url)
 {
@@ -845,7 +910,10 @@ static const command_rec crowdsec_cmds[] = {
                  "Enable crowdsec in the given location. Defaults to 'off'."),
     AP_INIT_TAKE1("CrowdsecFallback",
                   set_crowdsec_fallback, NULL, RSRC_CONF | ACCESS_CONF,
-                  "How to respond if the Crowdsec API is not available. 'fail' returns a 500 Internal Server Error. 'block' returns a 429 Too Many Requests. 'allow' will allow the request through. Default to 'fail'."),
+                  "How to respond if the Crowdsec API is not available. 'fail' returns a 500 Internal Server Error. 'block' returns a 302 Redirect (or 429 Too Many Requests if CrowdsecLocation is unset). 'allow' will allow the request through. Default to 'fail'."),
+    AP_INIT_TAKE1("CrowdsecLocation",
+                  set_crowdsec_location, NULL, RSRC_CONF | ACCESS_CONF,
+                  "Set to the URL to redirect to when the IP address is banned. As per RFC 7231 may be a path, or a full URL. For example: /sorry.html"),
     AP_INIT_TAKE1("CrowdsecURL",
                   set_crowdsec_url, NULL, RSRC_CONF,
                   "Set to the URL of the Crowdsec API. For example: http://localhost:8080."),

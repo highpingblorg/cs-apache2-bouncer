@@ -3,13 +3,20 @@ Module for the [Apache HTTP Web Server](https://httpd.apache.org) that allows fi
 
 Use with the [Crowdsec API](https://www.crowdsec.net) service to filter unwanted traffic from a website or application fronted by Apache httpd.
 
-When blocked, requests will return 429 Too any Requests, as defined in
+When blocked, requests will return 302 Temporary Redirect to the URL specified
+in the CrowdsecLocation directive. The URL is interpreted using the
+[expression API](https://httpd.apache.org/docs/2.4/expr.html) allowing the
+interpretation of variables in the request.
+
+If the CrowdsecLocation directive is not specified, we return 429 Too any Requests,
+as defined in
 [RFC6585](https://datatracker.ietf.org/doc/html/rfc6585#section-4). This
 response can be further customised into a fixed response or an URL or path to
 redirect to by using the
 [ErrorDocument](https://httpd.apache.org/docs/2.4/mod/core.html#errordocument)
 directive in Apache httpd. Full details for customising the error handling
-can be found here: [Custom Error Responses](https://httpd.apache.org/docs/2.4/custom-error.html)
+can be found here:
+[Custom Error Responses](https://httpd.apache.org/docs/2.4/custom-error.html)
 
 ## basic configuration
 
@@ -56,6 +63,11 @@ CrowdsecFallback block
 <Location /three/>
   ErrorDocument 429 /you-are-blocked.html
 </Location>
+
+<Location /four/>
+  Crowdsec on
+  CrowdsecLocation https://somewhere.example.com/blocked.html?ip=%{REMOTE_ADDR}
+</Location>
 ```
 
 ## directives
@@ -67,7 +79,8 @@ CrowdsecFallback block
 | CrowdsecAPIKey | Set to the API key of the Crowdsec API. Add an API key using 'cscli bouncers add'. |
 | CrowdsecCache    | Enable the crowdsec cache. Defaults to 'none'. Options detailed here: https://httpd.apache.org/docs/2.4/socache.html. |
 | CrowdsecCacheTimeout    | Set the crowdsec cache timeout. Defaults to 60 seconds. |
-| CrowdsecFallback  | How to respond if the Crowdsec API is not available. 'fail' returns a 500 Internal Server Error. 'block' returns a 429 Too Many Requests. 'allow' will allow the request through. Default to 'fail'. |
+| CrowdsecFallback  | How to respond if the Crowdsec API is not available. 'fail' returns a 500 Internal Server Error. 'block' returns a 302 Redirect (or 429 Too Many Requests if CrowdsecLocation is unset). 'allow' will allow the request through. Default to 'fail'. |
+| CrowdsecLocation | Set to the URL to redirect to when the IP address is banned. As per RFC 7231 may be a path, or a full URL. For example: /sorry.html |
 
 ## caching
 
@@ -81,7 +94,7 @@ response will be cached for.
 Should the Crowdsec API be unavailable, you can control the behaviour of mod_crowdsec
 with the CrowdsecFallback directive. By default, failure to determine the status of
 an IP address will cause mod_crowdsec to return 500 Internal Server Error. To override
-this and have mmod_crodsec block all requests, set to 'block'. If you wish to fail open,
+this and have mod_crowdsec block all requests, set to 'block'. If you wish to fail open,
 set this to 'allow'.
 
 The timeouts for connection to and communication with the crowdsec API are controlled by
