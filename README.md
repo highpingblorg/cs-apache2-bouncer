@@ -3,10 +3,11 @@ Module for the [Apache HTTP Web Server](https://httpd.apache.org) that allows fi
 
 Use with the [Crowdsec API](https://www.crowdsec.net) service to filter unwanted traffic from a website or application fronted by Apache httpd.
 
-When blocked, requests will return 302 Temporary Redirect to the URL specified
-in the CrowdsecLocation directive. The URL is interpreted using the
+When blocked, requests will return 302 Temporary Redirect to the fully qualified
+URL specified in the CrowdsecLocation directive. The URL is interpreted using the
 [expression API](https://httpd.apache.org/docs/2.4/expr.html) allowing the
-interpretation of variables in the request.
+interpretation of variables in the request. If CrowdsecLocation points at a relative
+URL, we return an internal redirect to the specified path.
 
 If the CrowdsecLocation directive is not specified, we return 429 Too any Requests,
 as defined in
@@ -53,19 +54,18 @@ CrowdsecFallback block
 </Location>
 
 <Location /one/>
-  ErrorDocument 429 "IP Address Blocked"
+  CrowdsecLocation "IP Address Blocked"
 </Location>
 
 <Location /two/>
-  ErrorDocument 429 https://somewhere.example.com/blocked.html
+  CrowdsecLocation https://somewhere.example.com/blocked.html
 </Location>
 
 <Location /three/>
-  ErrorDocument 429 /you-are-blocked.html
+  CrowdsecLocation /you-are-blocked.html
 </Location>
 
 <Location /four/>
-  Crowdsec on
   CrowdsecLocation https://somewhere.example.com/blocked.html?ip=%{REMOTE_ADDR}
 </Location>
 ```
@@ -80,7 +80,7 @@ CrowdsecFallback block
 | CrowdsecCache    | Enable the crowdsec cache. Defaults to 'none'. Options detailed here: https://httpd.apache.org/docs/2.4/socache.html. |
 | CrowdsecCacheTimeout    | Set the crowdsec cache timeout. Defaults to 60 seconds. |
 | CrowdsecFallback  | How to respond if the Crowdsec API is not available. 'fail' returns a 500 Internal Server Error. 'block' returns a 302 Redirect (or 429 Too Many Requests if CrowdsecLocation is unset). 'allow' will allow the request through. Default to 'fail'. |
-| CrowdsecLocation | Set to the URL to redirect to when the IP address is banned. As per RFC 7231 may be a path, or a full URL. For example: /sorry.html |
+| CrowdsecLocation | Set to the URL to redirect to when the IP address is banned. May be a path, or a full URL. For example: /sorry.html |
 
 ## caching
 

@@ -90,6 +90,7 @@
 #include "httpd.h"
 #include "http_config.h"
 #include "http_log.h"
+#include "http_core.h"
 #include "http_protocol.h"
 #include "http_request.h"
 #include "ap_expr.h"
@@ -542,9 +543,8 @@ static int crowdsec_query(request_rec * r)
                       "request redirected to '%s': %s",
                       r->useragent_ip, response, location, r->uri);
 
-        apr_table_setn(r->headers_out, "Location", location);
-        return HTTP_MOVED_TEMPORARILY;
-
+        ap_custom_response(r, HTTP_TOO_MANY_REQUESTS, location);
+        return HTTP_TOO_MANY_REQUESTS;
     }
 
     else {
