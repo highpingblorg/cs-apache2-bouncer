@@ -1,0 +1,1 @@
+config/crowdsec-apache2-bouncer.conf etc/crowdsec/bouncers/

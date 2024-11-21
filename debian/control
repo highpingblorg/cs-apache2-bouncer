@@ -1,0 +1,14 @@
+Source: crowdsec-apache2-bouncer
+Section: httpd
+Priority: optional
+Maintainer: Crowdsec Team <support@crowdsec.net>
+Build-Depends: debhelper (>> 13), apache2-dev
+Standards-Version: 1.0.0
+Homepage: https://github.com/buixor/mod_crowdsec
+Uploaders: Crowdsec Team <support@crowdsec.net>
+
+
+Package: crowdsec-apache2-bouncer
+Provides: crowdsec-apache2-bouncer
+Description: Apache2 Bouncer
+Architecture: any
