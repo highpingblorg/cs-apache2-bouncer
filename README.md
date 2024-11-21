@@ -1,4 +1,5 @@
-# mod\_crowdsec
+# Apache2 Crowdsec Bouncer
+
 Module for the [Apache HTTP Web Server](https://httpd.apache.org) that allows filtering of unwanted web traffic.
 
 Use with the [Crowdsec API](https://www.crowdsec.net) service to filter unwanted traffic from a website or application fronted by Apache httpd.
@@ -19,7 +20,50 @@ directive in Apache httpd. Full details for customising the error handling
 can be found here:
 [Custom Error Responses](https://httpd.apache.org/docs/2.4/custom-error.html)
 
-## basic configuration
+# Build & Installation
+
+> To build debian package:
+
+```bash
+dpkg-buildpackage -us -uc
+```
+
+> Installation
+
+```bash
+sudo dpkg -i crowdsec-apache2-bouncer_1.0.0_amd64.deb
+sudo a2enmod mod_crowdsec
+```
+
+# Configuration
+
+Configuration file is in `/etc/crowdsec/bouncers/crowdsec-apache2-bouncer.conf` :
+
+```
+## Basic configuration
+CrowdsecURL http://127.0.0.1:8081
+CrowdsecAPIKey this_is_a_bad_password
+
+# Behavior if we can't reach (or timeout) LAPI
+# block | allow | fail
+CrowdsecFallback block
+
+# Target location for blocked requests. If not set, the default is to return HTTP 429
+#CrowdsecLocation /denied
+
+
+## Cache configuration
+
+# Cache engine used
+CrowdsecCache shmcb
+# Expiration in seconds
+CrowdsecCacheTimeout 60
+```
+
+You then need to add `Crowdsec on` to the relevant locations.
+
+
+<!-- 
 
 ```
 # Load required modules
@@ -99,4 +143,4 @@ set this to 'allow'.
 
 The timeouts for connection to and communication with the crowdsec API are controlled by
 mod_proxy using the [ProxySet](https://httpd.apache.org/docs/2.4/mod/mod_proxy.html#proxyset) directive. Set the connectiontimeout and timeout options to
-control how long to wait for crowdsec to respond.
+control how long to wait for crowdsec to respond. -->
