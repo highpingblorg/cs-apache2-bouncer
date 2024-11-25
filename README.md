@@ -37,7 +37,7 @@ sudo a2enmod mod_crowdsec
 
 # Configuration
 
-Configuration file is in `/etc/crowdsec/bouncers/crowdsec-apache2-bouncer.conf` :
+`/etc/crowdsec/bouncers/crowdsec-apache2-bouncer.conf` contains a default/sample cfg file:
 
 ```
 ## Basic configuration
@@ -48,9 +48,13 @@ CrowdsecAPIKey this_is_a_bad_password
 # block | allow | fail
 CrowdsecFallback block
 
-# Target location for blocked requests. If not set, the default is to return HTTP 429
+
+
+# Target location for blocked requests. If not set, it will just return `CrowdsecBlockedHTTPCode`
 #CrowdsecLocation /denied
 
+# HTTP code returned for blocked requests.
+#CrowdsecBlockedHTTPCode 429
 
 ## Cache configuration
 
@@ -59,6 +63,10 @@ CrowdsecCache shmcb
 # Expiration in seconds
 CrowdsecCacheTimeout 60
 ```
+
+
+
+
 
 You then need to add `Crowdsec on` to the relevant locations.
 

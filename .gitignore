@@ -8,6 +8,8 @@ Makefile.in
 /ylwrap
 .deps/
 .dirstamp
+/build-stamp
+/.libs/
 
 # http://www.gnu.org/software/autoconf
 
@@ -19,6 +21,7 @@ autom4te.cache
 /config.cache
 /config.guess
 /config.h.in
+/config.h
 /config.log
 /config.status
 /config.sub
@@ -57,3 +60,15 @@ Makefile
 *.slo
 *.spec
 
+# Ignore Debian package-specific temporary files
+.debhelper/
+*.debhelper.log
+debian/files
+debian/stamp*
+debian/debhelper-build-stamp
+debian/clean
+debian/tmp/
+debian/*.debhelper
+debian/*.substvars
+debian/autoreconf.*
+debian/crowdsec-apache2-bouncer/

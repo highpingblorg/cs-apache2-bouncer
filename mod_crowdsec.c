@@ -131,6 +131,12 @@ typedef enum {
     CROWDSEC_ALLOW
 } crowdsec_fallback;
 
+typedef enum {
+    TOO_MANY_REQS = HTTP_TOO_MANY_REQUESTS,
+    FORBIDDEN = HTTP_FORBIDDEN,
+    INT_ERROR = HTTP_INTERNAL_SERVER_ERROR,
+} http_code;
+
 typedef struct
 {
     /* the response from the crowdsec service is stored here */
@@ -141,12 +147,16 @@ typedef struct
     unsigned int enable:1;
     /* crowdsec fallback behaviour */
     crowdsec_fallback fallback:2;
+    /* crowdsec blocked http code */
+    http_code blockedhttpcode;
     /* crowdsec has been enabled */
     unsigned int enable_set:1;
     /* enable was explicitly set */
     unsigned int fallback_set:1;
     /* location was explicitly set */
     unsigned int location_set:1;
+    /* blocked http code was explicitely set */
+    unsigned int blockedhttpcode_set:1;
 } crowdsec_config_rec;
 
 #define CROWDSEC_CACHE_TIMEOUT_DEFAULT 60
@@ -543,8 +553,8 @@ static int crowdsec_query(request_rec * r)
                       "request redirected to '%s': %s",
                       r->useragent_ip, response, location, r->uri);
 
-        ap_custom_response(r, HTTP_TOO_MANY_REQUESTS, location);
-        return HTTP_TOO_MANY_REQUESTS;
+        ap_custom_response(r, conf->blockedhttpcode, location);
+        return conf->blockedhttpcode;
     }
 
     else {
@@ -552,7 +562,7 @@ static int crowdsec_query(request_rec * r)
                       "crowdsec: ip address '%s' lookup returned %s, "
                       "request rejected: %s",
                       r->useragent_ip, response, r->uri);
-        return HTTP_TOO_MANY_REQUESTS;
+        return conf->blockedhttpcode;
     }
 
 }
@@ -648,6 +658,9 @@ static void *merge_crowdsec_dir_config(apr_pool_t * p, void *basev,
 
     new->location = (add->location_set == 0) ? base->location : add->location;
     new->location_set = add->location_set || base->location_set;
+
+    new->blockedhttpcode = (add->blockedhttpcode_set == 0) ? base->blockedhttpcode : add->blockedhttpcode;
+    new->blockedhttpcode_set = add->blockedhttpcode_set || base->blockedhttpcode_set;
 
     return new;
 }
@@ -774,6 +787,8 @@ static const char *set_crowdsec(cmd_parms * cmd, void *dconf, int flag)
     return NULL;
 }
 
+
+
 static const char *set_crowdsec_fallback(cmd_parms * cmd, void *dconf, const char *fallback)
 {
     crowdsec_config_rec *conf = dconf;
@@ -794,6 +809,32 @@ static const char *set_crowdsec_fallback(cmd_parms * cmd, void *dconf, const cha
     }
 
     conf->fallback_set = 1;
+
+    return NULL;
+}
+
+
+static const char *set_crowdsec_blockedhttpcode(cmd_parms * cmd, void *dconf, const char *blockedhttpcode)
+{
+    crowdsec_config_rec *conf = dconf;
+    int http_code = atoi(blockedhttpcode);
+
+    //let's restrict to a few values to avoid weird stuff:
+    // 200, 403, 500, 429
+    switch (http_code) {
+        case HTTP_FORBIDDEN:
+        case HTTP_INTERNAL_SERVER_ERROR:
+        case HTTP_TOO_MANY_REQUESTS:
+        //case 418: /*Apache won't let me do that :<*/
+            conf->blockedhttpcode = http_code;
+            break;
+        default:
+            return apr_psprintf(cmd->pool,
+                                "Unknown CrowdsecBlockedHTTPCode '%s'. Valid values "
+                                "are 403, 500 and 429.", blockedhttpcode);
+    }
+
+    conf->blockedhttpcode_set = 1;
 
     return NULL;
 }
@@ -911,6 +952,10 @@ static const command_rec crowdsec_cmds[] = {
     AP_INIT_TAKE1("CrowdsecFallback",
                   set_crowdsec_fallback, NULL, RSRC_CONF | ACCESS_CONF,
                   "How to respond if the Crowdsec API is not available. 'fail' returns a 500 Internal Server Error. 'block' returns a 302 Redirect (or 429 Too Many Requests if CrowdsecLocation is unset). 'allow' will allow the request through. Default to 'fail'."),
+ 
+    AP_INIT_TAKE1("CrowdsecBlockedHTTPCode",
+                  set_crowdsec_blockedhttpcode, NULL, RSRC_CONF | ACCESS_CONF,
+                  "Set the HTTP code to return when the IP address is blocked. Defaults to 429 Too Many Requests."),
     AP_INIT_TAKE1("CrowdsecLocation",
                   set_crowdsec_location, NULL, RSRC_CONF | ACCESS_CONF,
                   "Set to the URL to redirect to when the IP address is banned. As per RFC 7231 may be a path, or a full URL. For example: /sorry.html"),
