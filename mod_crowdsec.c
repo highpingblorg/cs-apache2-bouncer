@@ -955,7 +955,7 @@ static const command_rec crowdsec_cmds[] = {
  
     AP_INIT_TAKE1("CrowdsecBlockedHTTPCode",
                   set_crowdsec_blockedhttpcode, NULL, RSRC_CONF | ACCESS_CONF,
-                  "How to respond if the Crowdsec API is not available. 'fail' returns a 500 Internal Server Error. 'block' returns a 302 Redirect (or 429 Too Many Requests if CrowdsecLocation is unset). 'allow' will allow the request through. Default to 'fail'."),
+                  "Set the HTTP code to return when the IP address is blocked. Defaults to 429 Too Many Requests."),
     AP_INIT_TAKE1("CrowdsecLocation",
                   set_crowdsec_location, NULL, RSRC_CONF | ACCESS_CONF,
                   "Set to the URL to redirect to when the IP address is banned. As per RFC 7231 may be a path, or a full URL. For example: /sorry.html"),
