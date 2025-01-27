@@ -9,6 +9,10 @@ CFLAGS:=$(shell dpkg-buildflags --get CFLAGS)
 CPPFLAGS:=$(shell dpkg-buildflags --get CPPFLAGS)
 LDFLAGS:=$(shell dpkg-buildflags --get LDFLAGS)
 
+
+PKGDIR=$(CURDIR)/debian/crowdsec-apache2-bouncer
+MODDIR=$(PKGDIR)/usr/lib/apache2/modules
+
 build: build-arch build-indep
 build-arch: build-stamp
 build-indep:
