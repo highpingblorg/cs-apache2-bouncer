@@ -3,7 +3,7 @@
 
 set -eu
 
-BOUNCER="crowdsec-firewall-bouncer"
+BOUNCER="crowdsec-apache2-bouncer"
 BOUNCER_PREFIX=$(echo "$BOUNCER" | sed 's/crowdsec-/cs-/g')
 
 # This is a library of functions that can be sourced by other scripts
@@ -56,13 +56,11 @@ require() {
 
 # shellcheck disable=SC2034
 {
-SERVICE="$BOUNCER.service"
-BIN_PATH_INSTALLED="/usr/local/bin/$BOUNCER"
+BIN_PATH_INSTALLED="/usr/bin/$BOUNCER"
 BIN_PATH="./$BOUNCER"
 CONFIG_DIR="/etc/crowdsec/bouncers"
-CONFIG_FILE="$BOUNCER.yaml"
+CONFIG_FILE="$BOUNCER.conf"
 CONFIG="$CONFIG_DIR/$CONFIG_FILE"
-SYSTEMD_PATH_FILE="/etc/systemd/system/$SERVICE"
 }
 
 assert_root() {
@@ -86,7 +84,7 @@ config_not_set() {
         exit 1
     fi
 
-    before=$("$BOUNCER" -c "$CONFIG" -T)
+    before=$(cat "$CONFIG")
     # shellcheck disable=SC2016
     after=$(echo "$before" | envsubst "\$$varname")
 
