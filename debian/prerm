@@ -3,4 +3,3 @@
 a2dismod  mod_crowdsec
 systemctl reload apache2
 
-echo "PRERM DONE"
