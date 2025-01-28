@@ -1,2 +1,14 @@
 #!/bin/sh
 
+set -eu
+
+BOUNCER="crowdsec-apache2-bouncer"
+CONFIG="/etc/crowdsec/bouncers/$BOUNCER.conf"
+
+if [ "$1" = "purge" ]; then
+    if [ -f "$CONFIG.id" ]; then
+        bouncer_id=$(cat "$CONFIG.id")
+        cscli -oraw bouncers delete "$bouncer_id" 2>/dev/null || true
+        rm -f "$CONFIG.id"
+    fi
+fi
