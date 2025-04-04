@@ -1,7 +1,7 @@
 # RPM Spec file for @PACKAGE_NAME@
 
 Name:      cs-apache2-bouncer
-Version:   0.7
+Version:   0.1
 Release:   1%{?dist}
 Summary:   Apache Crowdsec module
 License:   ASL 2.0
