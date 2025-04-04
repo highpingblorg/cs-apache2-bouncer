@@ -1,4 +1,4 @@
-# RPM Spec file for @PACKAGE_NAME@
+# RPM Spec file for cs-apache2-bouncer/mod_crowdsec.so
 
 Name:      cs-apache2-bouncer
 Version:   0.1
