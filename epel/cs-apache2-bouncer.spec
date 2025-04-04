@@ -36,9 +36,16 @@ automake --add-missing --copy
 
 %install
 %make_install
+mkdir -p %{buildroot}/etc/httpd/conf.modules.d
+install -m 644 config/mod_crowdsec.conf %{buildroot}/etc/httpd/conf.modules.d/
+
+mkdir -p %{buildroot}/etc/crowdsec/bouncers
+install -m 600 config/crowdsec-apache2-bouncer.conf %{buildroot}/etc/crowdsec/bouncers/
 
 %files
 %{moduledir}/mod_crowdsec.so
+%config(noreplace) /etc/httpd/conf.modules.d/mod_crowdsec.conf
+%config(noreplace) /etc/crowdsec/bouncers/crowdsec-apache2-bouncer.conf
 
 %changelog
 * Fri Apr 04 2025 highpingblorg <omermm.personal@gmail.com> - 0.1-1
@@ -46,3 +53,4 @@ automake --add-missing --copy
 - Add build commands for pre EL10 build
 - Fix up build dependencies
 - Fix EL7 build requirements
+- Ensure config files are placed in required directories
