@@ -8,8 +8,12 @@ License:   ASL 2.0
 Group:     System Environment/Daemons
 Source:    https://github.com/crowdsecurity/%{name}/archive/refs/tags/v%{version}.tar.gz
 Url:       https://github.com/crowdsecurity/%{name}
-BuildRequires: gcc, pkgconfig(apr-1), pkgconfig(apr-util-1), (httpd-devel or apache-devel or apache2-devel), automake
-Requires: (httpd or apache or apache2)
+BuildRequires: gcc
+BuildRequires: apr-util-devel
+BuildRequires: apr-devel
+BuildRequires: httpd-devel
+BuildRequires: automake
+Requires: httpd
 
 %if 0%{?suse_version}
 %define moduledir %{_libdir}/apache2
