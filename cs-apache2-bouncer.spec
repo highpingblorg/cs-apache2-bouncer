@@ -40,4 +40,9 @@ automake --add-missing --copy
 %files
 %{moduledir}/mod_crowdsec.so
 
-
+%changelog
+* Fri Apr 04 2025 highpingblorg <omermm.personal@gmail.com> - 0.1-1
+- Add changelog
+- Add build commands for pre EL10 build
+- Fix up build dependencies
+- Fix EL7 build requirements
