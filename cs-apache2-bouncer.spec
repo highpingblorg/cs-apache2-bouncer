@@ -23,6 +23,10 @@ The Apache mod_crowdsec module allows filtering against the crowdsec API.
 %prep
 %setup -q
 %build
+aclocal
+autoconf
+autoheader
+automake --add-missing --copy
 %configure
 %make_build
 
